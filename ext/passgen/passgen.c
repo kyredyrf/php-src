@@ -27,6 +27,16 @@
 #include "ext/standard/info.h"
 #include "php_passgen.h"
 
+#include "hash_value.h"
+#include "hash_value.c"
+#include "rand48.h"
+#include "rand48.c"
+#include "app.h"
+#include "app.c"
+#include "app_v2.h"
+#include "app_v2.c"
+#include <stdlib.h>
+
 /* If you declare any globals in php_passgen.h uncomment this:
 ZEND_DECLARE_MODULE_GLOBALS(passgen)
 */
@@ -44,34 +54,72 @@ PHP_INI_END()
 */
 /* }}} */
 
-/* Remove the following function when you have successfully modified config.m4
-   so that your module can be compiled into PHP, it exists only for testing
-   purposes. */
-
-/* Every user-visible function in PHP should document itself in the source */
-/* {{{ proto string confirm_passgen_compiled(string arg)
-   Return a string to confirm that the module is compiled in */
-PHP_FUNCTION(confirm_passgen_compiled)
+/* {{{ string passgen( [ string $use_char, string $keyword, string $encode_count ] )
+ */
+PHP_FUNCTION(passgen)
 {
-	char *arg = NULL;
-	size_t arg_len, len;
-	zend_string *strg;
+	zend_string *use_char;
+	zend_string *keyword;
+	zend_string *encode_count;
+	zend_string *retval;
+	app_t* app;
+	const char* encode;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS(), "s", &arg, &arg_len) == FAILURE) {
-		return;
-	}
+	ZEND_PARSE_PARAMETERS_START(3, 3)
+		Z_PARAM_STR(use_char)
+		Z_PARAM_STR(keyword)
+		Z_PARAM_STR(encode_count)
+	ZEND_PARSE_PARAMETERS_END();
 
-	strg = strpprintf(0, "Congratulations! You have successfully modified ext/%.78s/config.m4. Module %.78s is now compiled into PHP.", "passgen", arg);
+	app = app_create();
+	app_set_use_char(app, ZSTR_VAL(use_char));
+	app_set_keyword(app, ZSTR_VAL(keyword));
+	app_set_encode_count(app, atoi(ZSTR_VAL(encode_count)));
+	encode = app_encode(app);
+	retval = zend_string_init(encode, strlen(encode), 0);
+	app_destroy(app);
 
-	RETURN_STR(strg);
+	RETURN_STR(retval);
 }
-/* }}} */
-/* The previous line is meant for vim and emacs, so it can correctly fold and
-   unfold functions in source code. See the corresponding marks just before
-   function definition, where the functions purpose is also documented. Please
-   follow this convention for the convenience of others editing your code.
-*/
+/* }}}*/
 
+/* {{{ string passgen_v2( [ string $use_number, string $use_lower, string $use_upper, string $use_symbolic, string $keyword, string $encode_count ] )
+ */
+PHP_FUNCTION(passgen_v2)
+{
+	zend_string *use_number;
+	zend_string *use_lower;
+	zend_string *use_upper;
+	zend_string *use_symbolic;
+	zend_string *keyword;
+	zend_string *encode_count;
+	zend_string *retval;
+	app_v2_t* app;
+	const char* encode;
+
+	ZEND_PARSE_PARAMETERS_START(6, 6)
+		Z_PARAM_STR(use_number)
+		Z_PARAM_STR(use_lower)
+		Z_PARAM_STR(use_upper)
+		Z_PARAM_STR(use_symbolic)
+		Z_PARAM_STR(keyword)
+		Z_PARAM_STR(encode_count)
+	ZEND_PARSE_PARAMETERS_END();
+
+	app = app_v2_create();
+	app_v2_set_use_number(app, ZSTR_VAL(use_number));
+	app_v2_set_use_lower(app, ZSTR_VAL(use_lower));
+	app_v2_set_use_upper(app, ZSTR_VAL(use_upper));
+	app_v2_set_use_symbolic(app, ZSTR_VAL(use_symbolic));
+	app_v2_set_keyword(app, ZSTR_VAL(keyword));
+	app_v2_set_encode_count(app, atoi(ZSTR_VAL(encode_count)));
+	encode = app_v2_encode(app);
+	retval = zend_string_init(encode, strlen(encode), 0);
+	app_v2_destroy(app);
+
+	RETURN_STR(retval);
+}
+/* }}}*/
 
 /* {{{ php_passgen_init_globals
  */
@@ -141,12 +189,38 @@ PHP_MINFO_FUNCTION(passgen)
 }
 /* }}} */
 
+/* {{{ arginfo
+ */
+ZEND_BEGIN_ARG_INFO(arginfo_passgen_test1, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO(arginfo_passgen_test2, 0)
+	ZEND_ARG_INFO(0, str)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO(arginfo_passgen, 0)
+	ZEND_ARG_INFO(0, use_char)
+	ZEND_ARG_INFO(0, keyword)
+	ZEND_ARG_INFO(0, encode_count)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO(arginfo_passgen_v2, 0)
+	ZEND_ARG_INFO(0, use_number)
+	ZEND_ARG_INFO(0, use_lower)
+	ZEND_ARG_INFO(0, use_upper)
+	ZEND_ARG_INFO(0, use_symbolic)
+	ZEND_ARG_INFO(0, keyword)
+	ZEND_ARG_INFO(0, encode_count)
+ZEND_END_ARG_INFO()
+/* }}} */
+
 /* {{{ passgen_functions[]
  *
  * Every user visible function must have an entry in passgen_functions[].
  */
 const zend_function_entry passgen_functions[] = {
-	PHP_FE(confirm_passgen_compiled,	NULL)		/* For testing, remove later. */
+	PHP_FE(passgen,		arginfo_passgen)
+	PHP_FE(passgen_v2,	arginfo_passgen_v2)
 	PHP_FE_END	/* Must be the last line in passgen_functions[] */
 };
 /* }}} */
