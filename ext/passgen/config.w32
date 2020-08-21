@@ -1,0 +1,7 @@
+ARG_ENABLE('passgen', 'passgen support', 'no');
+
+if (PHP_PASSGEN != 'no') {
+	AC_DEFINE('HAVE_PASSGEN', 1, 'passgen support enabled');
+
+	EXTENSION('passgen', 'passgen.c', null, '/DZEND_ENABLE_STATIC_TSRMLS_CACHE=1');
+}
